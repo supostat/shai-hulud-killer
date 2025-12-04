@@ -25,6 +25,7 @@ pub struct App {
     // Scanning state
     pub scan_progress: Arc<Mutex<ScanProgress>>,
     pub scan_results: Option<ScanResults>,
+    pub scan_path: Option<PathBuf>,
 
     // Results navigation
     pub results_scroll: usize,
@@ -62,6 +63,7 @@ impl App {
             include_node_modules,
             scan_progress: Arc::new(Mutex::new(ScanProgress::default())),
             scan_results: None,
+            scan_path: None,
             results_scroll: 0,
             selected_finding: 0,
         };
@@ -160,6 +162,20 @@ impl App {
         Ok(())
     }
 
+    pub fn get_selected_path(&self) -> PathBuf {
+        // Get the path of the currently selected/highlighted entry
+        if let Some(entry) = self.entries.get(self.selected_index) {
+            if entry.is_dir {
+                entry.path.clone()
+            } else {
+                // If a file is selected, scan its parent directory
+                self.current_path.clone()
+            }
+        } else {
+            self.current_path.clone()
+        }
+    }
+
     pub fn start_scan(&mut self) {
         self.state = AppState::Scanning;
         self.scan_results = None;
@@ -169,7 +185,9 @@ impl App {
             *progress = ScanProgress::default();
         }
 
-        let path = self.current_path.clone();
+        // Use the selected/highlighted folder, not the current view folder
+        let path = self.get_selected_path();
+        self.scan_path = Some(path.clone());
         let config = ScanConfig {
             include_node_modules: self.include_node_modules,
         };
@@ -208,8 +226,9 @@ impl App {
             let config = ScanConfig {
                 include_node_modules: self.include_node_modules,
             };
+            let scan_path = self.scan_path.clone().unwrap_or_else(|| self.current_path.clone());
             if let Ok(results) =
-                crate::scanner::scan_directory_sync(&self.current_path, &config)
+                crate::scanner::scan_directory_sync(&scan_path, &config)
             {
                 self.scan_results = Some(results.clone());
                 self.state = AppState::Results;
@@ -251,6 +270,7 @@ impl App {
     pub fn back_to_folder_select(&mut self) {
         self.state = AppState::SelectFolder;
         self.scan_results = None;
+        self.scan_path = None;
         self.selected_finding = 0;
         self.results_scroll = 0;
     }
