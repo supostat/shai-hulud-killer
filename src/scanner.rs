@@ -58,6 +58,7 @@ pub enum FindingType {
     MaliciousHash,
     SuspiciousPattern,
     DangerousHook,
+    CompromisedPackage,
 }
 
 /// Progress callback type for UI updates
@@ -100,6 +101,15 @@ pub fn scan_directory_with_progress(
                 .unwrap_or(false)
             {
                 file_findings.extend(check_package_json(file_path));
+            }
+
+            // Check package-lock.json for compromised packages
+            if file_path
+                .file_name()
+                .map(|n| n == "package-lock.json" || n == "yarn.lock" || n == "pnpm-lock.yaml")
+                .unwrap_or(false)
+            {
+                file_findings.extend(check_lockfile(file_path));
             }
 
             file_findings
@@ -248,6 +258,7 @@ fn check_package_json(path: &Path) -> Vec<Finding> {
 
     let mut findings = Vec::new();
 
+    // Check for dangerous hooks
     if let Some(scripts) = json.get("scripts").and_then(|s| s.as_object()) {
         for hook in DANGEROUS_HOOKS {
             if let Some(script) = scripts.get(*hook).and_then(|s| s.as_str()) {
@@ -267,6 +278,39 @@ fn check_package_json(path: &Path) -> Vec<Finding> {
         }
     }
 
+    // Check for compromised packages in dependencies
+    let dep_sections = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
+    
+    for section in dep_sections {
+        if let Some(deps) = json.get(section).and_then(|d| d.as_object()) {
+            for (pkg_name, pkg_version) in deps {
+                let version = pkg_version.as_str().unwrap_or("unknown");
+                
+                // Check if this specific version is compromised
+                if let Some(infected_versions) = is_version_compromised(pkg_name, version) {
+                    findings.push(Finding {
+                        path: path.display().to_string(),
+                        finding_type: FindingType::CompromisedPackage,
+                        severity: Severity::Critical,
+                        description: format!("INFECTED package: {} @ {} (Shai-Hulud 2.0)", pkg_name, version),
+                        line: None,
+                        context: Some(format!("Infected versions: {}", infected_versions.join(", "))),
+                    });
+                } else if let Some(infected_versions) = is_package_compromised(pkg_name) {
+                    // Package is in list but version doesn't match - warn but lower severity
+                    findings.push(Finding {
+                        path: path.display().to_string(),
+                        finding_type: FindingType::CompromisedPackage,
+                        severity: Severity::Medium,
+                        description: format!("Package {} was targeted (your version {} may be safe)", pkg_name, version),
+                        line: None,
+                        context: Some(format!("Infected versions: {}", infected_versions.join(", "))),
+                    });
+                }
+            }
+        }
+    }
+
     findings
 }
 
@@ -275,5 +319,105 @@ fn truncate_string(s: &str, max_len: usize) -> String {
         s.to_string()
     } else {
         format!("{}...", &s[..max_len])
+    }
+}
+
+fn check_lockfile(path: &Path) -> Vec<Finding> {
+    let Ok(content) = fs::read_to_string(path) else {
+        return vec![];
+    };
+
+    let mut findings = Vec::new();
+    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+    // For package-lock.json, parse as JSON
+    if filename == "package-lock.json" {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            // Check "packages" section (npm v7+)
+            if let Some(packages) = json.get("packages").and_then(|p| p.as_object()) {
+                for (pkg_path, pkg_info) in packages {
+                    // Extract package name from path like "node_modules/@ctrl/tinycolor"
+                    let pkg_name = pkg_path
+                        .strip_prefix("node_modules/")
+                        .unwrap_or(pkg_path);
+                    
+                    let version = pkg_info
+                        .get("version")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown");
+                    
+                    if let Some(infected_versions) = is_version_compromised(pkg_name, version) {
+                        findings.push(Finding {
+                            path: path.display().to_string(),
+                            finding_type: FindingType::CompromisedPackage,
+                            severity: Severity::Critical,
+                            description: format!("INFECTED in lockfile: {} @ {}", pkg_name, version),
+                            line: None,
+                            context: Some(format!("Infected versions: {}", infected_versions.join(", "))),
+                        });
+                    }
+                }
+            }
+            
+            // Check "dependencies" section (npm v6)
+            if let Some(deps) = json.get("dependencies").and_then(|d| d.as_object()) {
+                check_npm_v6_deps(&path.display().to_string(), deps, &mut findings);
+            }
+        }
+    } else {
+        // For yarn.lock and pnpm-lock.yaml, check for package@version patterns
+        for (pkg, versions) in COMPROMISED_PACKAGES {
+            for version in *versions {
+                // Check for patterns like "package@version" or "package@^version"
+                let patterns = [
+                    format!("{}@{}", pkg, version),
+                    format!("\"{}\":\n  version: \"{}\"", pkg, version), // pnpm format
+                ];
+                for pattern in &patterns {
+                    if content.contains(pattern) {
+                        findings.push(Finding {
+                            path: path.display().to_string(),
+                            finding_type: FindingType::CompromisedPackage,
+                            severity: Severity::Critical,
+                            description: format!("INFECTED in lockfile: {} @ {}", pkg, version),
+                            line: None,
+                            context: Some(format!("Infected versions: {}", versions.join(", "))),
+                        });
+                        break; // Found this version, no need to check other patterns
+                    }
+                }
+            }
+        }
+    }
+
+    findings
+}
+
+fn check_npm_v6_deps(
+    path: &str,
+    deps: &serde_json::Map<String, serde_json::Value>,
+    findings: &mut Vec<Finding>,
+) {
+    for (pkg_name, pkg_info) in deps {
+        let version = pkg_info
+            .get("version")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        
+        if let Some(infected_versions) = is_version_compromised(pkg_name, version) {
+            findings.push(Finding {
+                path: path.to_string(),
+                finding_type: FindingType::CompromisedPackage,
+                severity: Severity::Critical,
+                description: format!("INFECTED in lockfile: {} @ {}", pkg_name, version),
+                line: None,
+                context: Some(format!("Infected versions: {}", infected_versions.join(", "))),
+            });
+        }
+        
+        // Recursively check nested dependencies
+        if let Some(nested_deps) = pkg_info.get("dependencies").and_then(|d| d.as_object()) {
+            check_npm_v6_deps(path, nested_deps, findings);
+        }
     }
 }

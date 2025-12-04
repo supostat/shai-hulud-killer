@@ -389,6 +389,7 @@ fn draw_results(f: &mut Frame, app: &App, area: Rect) {
                     FindingType::MaliciousHash => "🔐",
                     FindingType::SuspiciousPattern => "🔍",
                     FindingType::DangerousHook => "⚡",
+                    FindingType::CompromisedPackage => "📦",
                 };
 
                 let line_info = finding

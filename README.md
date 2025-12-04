@@ -72,6 +72,18 @@ Shai-Hulud 2.0 is one of the fastest-spreading npm supply chain attacks ever obs
 - 📦 **Package.json analysis** — Dangerous lifecycle hooks (`preinstall`, `postinstall`)
 - 🔐 **Hash matching** — Known malicious file SHA256 hashes from Netskope IOCs
 - 📊 **JSON output** — CI/CD integration ready
+- ⚠️ **Compromised package detection** — Detects 150+ packages known to be affected by Shai-Hulud 2.0
+
+## Compromised Package Detection
+
+The scanner checks your `package.json` and `package-lock.json` for packages known to be compromised in the Shai-Hulud 2.0 attack. This includes packages from:
+
+- **@crowdstrike/** — Multiple packages from this organization
+- **@nativescript-community/** — Multiple packages from this organization
+- **@ctrl/** — Multiple packages including ngx-csv, ngx-codemirror
+- **Popular packages** — ngx-bootstrap, angulartics2, ng2-file-upload, ngx-toastr, ngx-color, and more
+
+For the complete list, see [Aikido's analysis](https://www.aikido.dev/blog/s1ngularity-nx-attackers-strike-again).
 
 ## Docker Usage
 

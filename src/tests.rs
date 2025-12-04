@@ -123,6 +123,62 @@ mod tests {
     }
 
     #[test]
+    fn test_compromised_package_detected() {
+        let config = ScanConfig {
+            include_node_modules: false,
+        };
+        let path = Path::new("test_samples/compromised_packages");
+        let results = scan_directory_sync(path, &config).expect("Scan should succeed");
+
+        // Should detect compromised packages from the Shai-Hulud 2.0 list
+        let compromised_findings: Vec<_> = results.findings.iter()
+            .filter(|f| matches!(f.finding_type, FindingType::CompromisedPackage))
+            .collect();
+
+        assert!(!compromised_findings.is_empty(), 
+            "Should detect compromised packages from Shai-Hulud 2.0 list");
+
+        // Check for specific packages we know are in the test sample
+        let detected_packages: Vec<&str> = compromised_findings.iter()
+            .map(|f| f.description.as_str())
+            .collect();
+
+        let has_ngx_bootstrap = detected_packages.iter()
+            .any(|d| d.contains("ngx-bootstrap"));
+        let has_angulartics2 = detected_packages.iter()
+            .any(|d| d.contains("angulartics2"));
+        let has_ctrl_ngx_csv = detected_packages.iter()
+            .any(|d| d.contains("@ctrl/ngx-csv"));
+
+        assert!(has_ngx_bootstrap, "Should detect ngx-bootstrap as compromised");
+        assert!(has_angulartics2, "Should detect angulartics2 as compromised");
+        assert!(has_ctrl_ngx_csv, "Should detect @ctrl/ngx-csv as compromised");
+
+        println!("✓ Compromised package detection test passed");
+        println!("  Detected {} compromised packages", compromised_findings.len());
+    }
+
+    #[test]
+    fn test_clean_project_no_compromised_packages() {
+        let config = ScanConfig {
+            include_node_modules: false,
+        };
+        let path = Path::new("test_samples/clean_project");
+        let results = scan_directory_sync(path, &config).expect("Scan should succeed");
+
+        // Should NOT detect any compromised packages
+        let compromised_findings: Vec<_> = results.findings.iter()
+            .filter(|f| matches!(f.finding_type, FindingType::CompromisedPackage))
+            .collect();
+
+        assert!(compromised_findings.is_empty(), 
+            "Clean project should not have any compromised package findings, but found: {:?}",
+            compromised_findings.iter().map(|f| &f.description).collect::<Vec<_>>());
+
+        println!("✓ Clean project no compromised packages test passed");
+    }
+
+    #[test]
     fn test_rce_patterns_detected() {
         let config = ScanConfig {
             include_node_modules: false,
@@ -274,16 +330,19 @@ mod tests {
         let malicious_hash = FindingType::MaliciousHash;
         let suspicious_pattern = FindingType::SuspiciousPattern;
         let dangerous_hook = FindingType::DangerousHook;
+        let compromised_package = FindingType::CompromisedPackage;
 
         // Each type should have a different debug representation
         assert_ne!(format!("{:?}", malicious_file), format!("{:?}", malicious_hash));
         assert_ne!(format!("{:?}", suspicious_pattern), format!("{:?}", dangerous_hook));
+        assert_ne!(format!("{:?}", compromised_package), format!("{:?}", malicious_file));
 
         println!("✓ Finding type variants test passed");
         println!("  MaliciousFile: {:?}", malicious_file);
         println!("  MaliciousHash: {:?}", malicious_hash);
         println!("  SuspiciousPattern: {:?}", suspicious_pattern);
         println!("  DangerousHook: {:?}", dangerous_hook);
+        println!("  CompromisedPackage: {:?}", compromised_package);
     }
 
     #[test]
@@ -409,6 +468,7 @@ mod tests {
                 FindingType::MaliciousHash => "🔐",
                 FindingType::SuspiciousPattern => "🔍",
                 FindingType::DangerousHook => "⚡",
+                FindingType::CompromisedPackage => "📦",
             }
         }
 
@@ -416,12 +476,14 @@ mod tests {
         assert_eq!(get_icon(&FindingType::MaliciousHash), "🔐");
         assert_eq!(get_icon(&FindingType::SuspiciousPattern), "🔍");
         assert_eq!(get_icon(&FindingType::DangerousHook), "⚡");
+        assert_eq!(get_icon(&FindingType::CompromisedPackage), "📦");
 
         println!("✓ UI icon mapping test passed");
         println!("  MaliciousFile: 📛");
         println!("  MaliciousHash: 🔐");
         println!("  SuspiciousPattern: 🔍");
         println!("  DangerousHook: ⚡");
+        println!("  CompromisedPackage: 📦");
     }
 
     #[test]
