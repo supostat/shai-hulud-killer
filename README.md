@@ -6,6 +6,53 @@ A fast, interactive CLI tool to detect the **Shai-Hulud 2.0** npm supply chain a
 ![Docker](https://img.shields.io/badge/Docker-ready-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+## Installation
+
+### One-Line Install (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/supostat/shai-hulud-killer/main/install.sh | bash
+```
+
+### Manual Download
+
+Download the latest binary for your platform from [Releases](https://github.com/supostat/shai-hulud-killer/releases):
+
+| Platform | Binary |
+|----------|--------|
+| macOS (Intel) | `shai-hulud-killer-*-darwin-x86_64` |
+| macOS (Apple Silicon) | `shai-hulud-killer-*-darwin-aarch64` |
+| Linux (x64) | `shai-hulud-killer-*-linux-x86_64` |
+| Linux (ARM64) | `shai-hulud-killer-*-linux-aarch64` |
+
+### Custom Install Location
+
+```bash
+INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/supostat/shai-hulud-killer/main/install.sh | bash
+```
+
+### Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/supostat/shai-hulud-killer/main/install.sh | bash -s uninstall
+```
+
+## Usage
+
+```bash
+# Interactive TUI
+shai-hulud-killer
+
+# Scan specific directory
+shai-hulud-killer /path/to/project
+
+# JSON output for CI/CD
+shai-hulud-killer --json /path/to/project
+
+# Include node_modules
+shai-hulud-killer --include-node-modules /path/to/project
+```
+
 ## About Shai-Hulud 2.0
 
 Shai-Hulud 2.0 is one of the fastest-spreading npm supply chain attacks ever observed (November 2025). It:
@@ -26,17 +73,11 @@ Shai-Hulud 2.0 is one of the fastest-spreading npm supply chain attacks ever obs
 - 🔐 **Hash matching** — Known malicious file SHA256 hashes from Netskope IOCs
 - 📊 **JSON output** — CI/CD integration ready
 
-## Quick Start
-
-### Prerequisites
-
-- Docker & Docker Compose
-
-### Installation
+## Docker Usage
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/shai-hulud-killer.git
+git clone https://github.com/supostat/shai-hulud-killer.git
 cd shai-hulud-killer
 
 # Make dev script executable
@@ -44,11 +85,7 @@ chmod +x dev.sh
 
 # Build the release binary
 ./dev.sh build
-```
 
-### Usage
-
-```bash
 # Run interactive scanner (default: ~/Projects)
 ./dev.sh run
 
