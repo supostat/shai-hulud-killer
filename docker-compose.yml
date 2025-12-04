@@ -1,0 +1,58 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shai-hulud-killer-dev
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+    working_dir: /app
+    tty: true
+    stdin_open: true
+    command: bash
+
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shai-hulud-killer-build
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+    working_dir: /app
+    command: cargo build --release
+
+  run:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shai-hulud-killer-run
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+      # Mount directory to scan (change this path as needed)
+      - ~/Projects:/scan:ro
+    working_dir: /app
+    tty: true
+    stdin_open: true
+    command: sh -c "cargo build --release && ./target/release/shai-hulud-killer /scan"
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shai-hulud-killer-test
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+    working_dir: /app
+    command: cargo test
+
+volumes:
+  cargo-cache:
+  cargo-git:
