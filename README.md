@@ -125,23 +125,31 @@ chmod +x dev.sh
 ./dev.sh json /path/to/your/project
 ```
 
-### Build Native Binary (Fastest)
+### Build Native Binary
 
+**Option 1: Docker (Linux binary)**
 ```bash
-# Build release binary
 ./dev.sh build
+./dev.sh extract shk
 
-# Copy binary from Docker to host
-docker cp $(docker create --rm shai-hulud-killer:latest):/app/target/release/shai-hulud-killer ./shai-hulud-killer
+# Run via Docker (works on any OS)
+./dev.sh run /path/to/your/project
+./dev.sh json /path/to/your/project
+```
+
+**Option 2: Native macOS/Linux build (requires Rust)**
+```bash
+# Install Rust if needed: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo build --release
 
 # Run native binary
-./shai-hulud-killer /path/to/your/project
+./target/release/shai-hulud-killer /path/to/your/project
 
 # With JSON output
-./shai-hulud-killer --json /path/to/your/project
+./target/release/shai-hulud-killer --json /path/to/your/project
 
 # Include node_modules scanning
-./shai-hulud-killer --include-node-modules /path/to/your/project
+./target/release/shai-hulud-killer --include-node-modules /path/to/your/project
 ```
 
 ### Quick Command Reference

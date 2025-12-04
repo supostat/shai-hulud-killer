@@ -50,17 +50,25 @@ case "$1" in
         docker compose down -v
         echo -e "${GREEN}✓ Cleaned!${NC}"
         ;;
+    extract)
+        echo -e "${YELLOW}Extracting binary...${NC}"
+        OUTPUT="${2:-./shai-hulud-killer}"
+        docker compose run --rm -v "$(pwd):/out" build cp /app/target/release/shai-hulud-killer "/out/$OUTPUT"
+        chmod +x "$OUTPUT"
+        echo -e "${GREEN}✓ Binary extracted to $OUTPUT${NC}"
+        ;;
     *)
-        echo "Usage: $0 {build|dev|run|scan|json|test|clean} [path]"
+        echo "Usage: $0 {build|dev|run|scan|json|test|clean|extract} [path]"
         echo ""
         echo "Commands:"
-        echo "  build       - Build release binary"
-        echo "  dev         - Start development shell"
-        echo "  run [path]  - Build and run the scanner (default: ~/Projects)"
-        echo "  scan [path] - Run scanner with pre-built binary"
-        echo "  json [path] - Output JSON for CI/CD"
-        echo "  test        - Run tests"
-        echo "  clean       - Remove containers and volumes"
+        echo "  build         - Build release binary"
+        echo "  dev           - Start development shell"
+        echo "  run [path]    - Build and run the scanner (default: ~/Projects)"
+        echo "  scan [path]   - Run scanner with pre-built binary"
+        echo "  json [path]   - Output JSON for CI/CD"
+        echo "  test          - Run tests"
+        echo "  clean         - Remove containers and volumes"
+        echo "  extract [name]- Extract binary to host (default: ./shai-hulud-killer)"
         exit 1
         ;;
 esac
