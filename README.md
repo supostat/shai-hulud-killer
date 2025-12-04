@@ -20,10 +20,10 @@ Download the latest binary for your platform from [Releases](https://github.com/
 
 | Platform | Binary |
 |----------|--------|
-| macOS (Intel) | `shai-hulud-killer-*-darwin-x86_64` |
-| macOS (Apple Silicon) | `shai-hulud-killer-*-darwin-aarch64` |
-| Linux (x64) | `shai-hulud-killer-*-linux-x86_64` |
-| Linux (ARM64) | `shai-hulud-killer-*-linux-aarch64` |
+| macOS (Intel) | `shk-*-darwin-x86_64` |
+| macOS (Apple Silicon) | `shk-*-darwin-aarch64` |
+| Linux (x64) | `shk-*-linux-x86_64` |
+| Linux (ARM64) | `shk-*-linux-aarch64` |
 
 ### Custom Install Location
 
@@ -41,16 +41,16 @@ curl -fsSL https://raw.githubusercontent.com/supostat/shai-hulud-killer/main/ins
 
 ```bash
 # Interactive TUI
-shai-hulud-killer
+shk
 
 # Scan specific directory
-shai-hulud-killer /path/to/project
+shk /path/to/project
 
 # JSON output for CI/CD
-shai-hulud-killer --json /path/to/project
+shk --json /path/to/project
 
 # Include node_modules
-shai-hulud-killer --include-node-modules /path/to/project
+shk --include-node-modules /path/to/project
 ```
 
 ## About Shai-Hulud 2.0

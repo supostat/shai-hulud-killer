@@ -6,6 +6,10 @@ authors = ["Shai-Hulud Killer Team"]
 description = "Detect Shai-Hulud 2.0 npm supply chain attack"
 license = "MIT"
 
+[[bin]]
+name = "shk"
+path = "src/main.rs"
+
 [dependencies]
 # TUI framework
 ratatui = "0.29"

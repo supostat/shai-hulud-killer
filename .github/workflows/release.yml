@@ -56,14 +56,14 @@ jobs:
       - name: Prepare binary
         run: |
           cd target/${{ matrix.target }}/release
-          chmod +x shai-hulud-killer
-          cp shai-hulud-killer ../../../shai-hulud-killer-${{ github.ref_name }}-${{ matrix.name }}
+          chmod +x shk
+          cp shk ../../../shk-${{ github.ref_name }}-${{ matrix.name }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shai-hulud-killer-${{ matrix.name }}
-          path: shai-hulud-killer-${{ github.ref_name }}-${{ matrix.name }}
+          name: shk-${{ matrix.name }}
+          path: shk-${{ github.ref_name }}-${{ matrix.name }}
 
   release:
     name: Create Release
@@ -83,7 +83,7 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          find artifacts -type f -name "shai-hulud-killer-*" -exec cp {} release/ \;
+          find artifacts -type f -name "shk-*" -exec cp {} release/ \;
           ls -la release/
 
       - name: Create Release

@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Config
 REPO="supostat/shai-hulud-killer"
-BINARY_NAME="shai-hulud-killer"
+BINARY_NAME="shk"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
 echo -e "${RED}"
