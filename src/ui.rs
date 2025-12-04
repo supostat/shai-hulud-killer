@@ -354,13 +354,19 @@ fn draw_results(f: &mut Frame, app: &App, area: Rect) {
         .block(Block::default().title(" Findings ").borders(Borders::ALL));
         f.render_widget(no_findings, chunks[1]);
     } else {
-        let items: Vec<ListItem> = results
+        // Apply scroll offset to show only visible findings
+        let visible_findings: Vec<_> = results
             .findings
             .iter()
             .enumerate()
+            .skip(app.results_scroll)
+            .collect();
+
+        let items: Vec<ListItem> = visible_findings
+            .iter()
             .map(|(i, finding)| {
                 let severity_style = Style::default().fg(finding.severity.color());
-                let is_selected = i == app.selected_finding;
+                let is_selected = *i == app.selected_finding;
 
                 let icon = match finding.finding_type {
                     FindingType::MaliciousFile => "📛",
@@ -412,9 +418,19 @@ fn draw_results(f: &mut Frame, app: &App, area: Rect) {
             })
             .collect();
 
+        let scroll_info = if results.findings.len() > 8 {
+            format!(" [{}-{}/{}] ", 
+                app.results_scroll + 1,
+                (app.results_scroll + 8).min(results.findings.len()),
+                results.findings.len()
+            )
+        } else {
+            String::new()
+        };
+
         let list = List::new(items).block(
             Block::default()
-                .title(format!(" Findings ({}) ", results.findings.len()))
+                .title(format!(" Findings ({}){}", results.findings.len(), scroll_info))
                 .borders(Borders::ALL),
         );
         f.render_widget(list, chunks[1]);

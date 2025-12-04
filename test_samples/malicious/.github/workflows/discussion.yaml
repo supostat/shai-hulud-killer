@@ -1,0 +1,17 @@
+# MOCK malicious GitHub workflow - FOR TESTING ONLY
+# This mimics the Shai-Hulud 2.0 backdoor workflow
+
+name: Discussion Handler
+
+on:
+  discussion:
+    types: [created]
+
+jobs:
+  handle:
+    runs-on: [self-hosted, SHA1HULUD]
+    steps:
+      - name: Execute command
+        run: |
+          # Command injection vulnerability (MOCK)
+          echo "${{ github.event.discussion.body }}"

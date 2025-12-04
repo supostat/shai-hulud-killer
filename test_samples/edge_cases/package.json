@@ -1,0 +1,13 @@
+{
+  "name": "edge-case-package",
+  "version": "1.0.0",
+  "description": "Package with build scripts that might look suspicious",
+  "scripts": {
+    "prebuild": "echo 'Preparing build...'",
+    "build": "tsc && node scripts/bundle.js",
+    "postbuild": "echo 'Build complete!'",
+    "pretest": "npm run build",
+    "test": "jest"
+  },
+  "dependencies": {}
+}

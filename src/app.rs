@@ -226,6 +226,7 @@ impl App {
     pub fn results_up(&mut self) {
         if self.selected_finding > 0 {
             self.selected_finding -= 1;
+            self.adjust_results_scroll();
         }
     }
 
@@ -233,7 +234,17 @@ impl App {
         if let Some(results) = &self.scan_results {
             if self.selected_finding < results.findings.len().saturating_sub(1) {
                 self.selected_finding += 1;
+                self.adjust_results_scroll();
             }
+        }
+    }
+
+    fn adjust_results_scroll(&mut self) {
+        let visible_height = 8; // Approximate visible findings (each takes ~3 lines)
+        if self.selected_finding < self.results_scroll {
+            self.results_scroll = self.selected_finding;
+        } else if self.selected_finding >= self.results_scroll + visible_height {
+            self.results_scroll = self.selected_finding - visible_height + 1;
         }
     }
 

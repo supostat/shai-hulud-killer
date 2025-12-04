@@ -3,6 +3,9 @@ mod patterns;
 mod scanner;
 mod ui;
 
+#[cfg(test)]
+mod tests;
+
 use anyhow::Result;
 use app::App;
 use clap::Parser;

@@ -110,6 +110,49 @@ chmod +x dev.sh
 | `runs-on: self-hosted` | Self-hosted runner config |
 | `npm publish --access public` | Public package publishing |
 
+## Production Usage
+
+### Using Docker
+
+```bash
+# Scan current directory
+./dev.sh run .
+
+# Scan specific path
+./dev.sh run /path/to/your/project
+
+# JSON output for CI/CD pipelines
+./dev.sh json /path/to/your/project
+```
+
+### Build Native Binary (Fastest)
+
+```bash
+# Build release binary
+./dev.sh build
+
+# Copy binary from Docker to host
+docker cp $(docker create --rm shai-hulud-killer:latest):/app/target/release/shai-hulud-killer ./shai-hulud-killer
+
+# Run native binary
+./shai-hulud-killer /path/to/your/project
+
+# With JSON output
+./shai-hulud-killer --json /path/to/your/project
+
+# Include node_modules scanning
+./shai-hulud-killer --include-node-modules /path/to/your/project
+```
+
+### Quick Command Reference
+
+| Use Case | Command |
+|----------|---------|
+| Interactive scan | `./dev.sh run /path` |
+| JSON output | `./dev.sh json /path` |
+| CI/CD pipeline | `docker run --rm -v /path:/scan shai-hulud-killer:latest --json /scan` |
+| Native binary | `./shai-hulud-killer --json /path` |
+
 ## CI/CD Integration
 
 ### GitHub Actions
@@ -171,6 +214,63 @@ cargo clippy            # Lint
 ./dev.sh clean
 ```
 
+## Testing
+
+The project includes comprehensive tests covering malware detection and UI display.
+
+### Run Tests
+
+```bash
+./dev.sh test
+```
+
+### Test Categories
+
+| Category | Description |
+|----------|-------------|
+| **Malicious File Detection** | Detects `setup_bun.js`, `bun_environment.js` |
+| **Shai-Hulud Markers** | Finds `SHA1HULUD`, `Sha1-Hulud` identifiers |
+| **Credential Theft Patterns** | AWS, GCP, Azure, GitHub token patterns |
+| **Dangerous Hooks** | `preinstall`, `postinstall` with suspicious commands |
+| **Malicious Workflows** | GitHub Actions with self-hosted runners |
+| **RCE Patterns** | `curl \| sh`, `wget \| bash` patterns |
+| **Clean File Validation** | Ensures no false positives on safe code |
+| **Edge Cases** | Boundary conditions and partial matches |
+
+### UI Display Tests
+
+| Test | Validates |
+|------|-----------|
+| `test_severity_colors` | Critical→Red, High→LightRed, Medium→Yellow, Low→Blue |
+| `test_severity_display_strings` | Uppercase labels: CRITICAL, HIGH, MEDIUM, LOW |
+| `test_finding_type_variants` | All FindingType enum variants exist |
+| `test_findings_have_display_data` | Path, description, severity for each finding |
+| `test_all_severity_levels_in_results` | Multiple severity levels triggered |
+| `test_summary_display_values` | Summary counts add up correctly |
+| `test_finding_context_for_display` | Context data sized for UI |
+| `test_ui_icon_mapping` | 📛 🔐 🔍 ⚡ icons for finding types |
+| `test_result_status_icon` | 🚨 ⚠️ ✅ status icons |
+| `test_json_serialization_for_display` | JSON output serialization |
+
+### Test Samples
+
+```
+test_samples/
+├── malicious/              # Known bad patterns
+│   ├── setup_bun.js
+│   ├── bun_environment.js
+│   ├── infected_package.json
+│   └── .github/workflows/discussion.yaml
+├── clean/                  # Safe code (no findings expected)
+│   ├── app.js
+│   ├── server.js
+│   ├── utils.js
+│   └── package.json
+└── edge_cases/             # Boundary conditions
+    ├── config_loader.js
+    └── package.json
+```
+
 ## Project Structure
 
 ```
@@ -180,12 +280,17 @@ shai-hulud-killer/
 ├── docker-compose.yml   # Docker services
 ├── dev.sh              # Development helper script
 ├── README.md           # This file
-└── src/
-    ├── main.rs         # Entry point & CLI args
-    ├── app.rs          # Application state & navigation
-    ├── patterns.rs     # Detection patterns & IOCs
-    ├── scanner.rs      # Parallel file scanning
-    └── ui.rs           # Terminal UI (ratatui)
+├── src/
+│   ├── main.rs         # Entry point & CLI args
+│   ├── app.rs          # Application state & navigation
+│   ├── patterns.rs     # Detection patterns & IOCs
+│   ├── scanner.rs      # Parallel file scanning
+│   ├── ui.rs           # Terminal UI (ratatui)
+│   └── tests.rs        # Test suite (21 tests)
+└── test_samples/
+    ├── malicious/      # Mocked malware files
+    ├── clean/          # Safe sample files
+    └── edge_cases/     # Boundary conditions
 ```
 
 ## Tech Stack
@@ -197,6 +302,74 @@ shai-hulud-killer/
 - **regex** — Pattern matching
 - **sha2** — Hash verification
 - **clap** — CLI argument parsing
+
+## Detection Flow
+
+```
+📁 Target Directory
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│  TRAVERSAL (walkdir + rayon)                                 │
+│  • Multi-threaded directory walking                          │
+│  • Skips: .git, node_modules*, dist, build, vendor           │
+│  • Scans: .js, .ts, .mjs, .cjs, .json, .yaml, .yml, .sh      │
+└──────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│  FOR EACH FILE (parallel processing):                        │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 1️⃣  FILENAME CHECK                                     │  │
+│  │    Match against known malicious files:                │  │
+│  │    • setup_bun.js                                      │  │
+│  │    • bun_environment.js                                │  │
+│  │    → CRITICAL if matched                               │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 2️⃣  HASH CHECK                                         │  │
+│  │    Compute SHA256 hash of file content                 │  │
+│  │    Compare against Netskope IOC hashes                 │  │
+│  │    → CRITICAL if matched                               │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 3️⃣  PATTERN SCAN                                       │  │
+│  │    Line-by-line regex matching for:                    │  │
+│  │    • Shai-Hulud markers (SHA1HULUD, Second Coming)     │  │
+│  │    • Credential theft (gh auth, trufflehog)            │  │
+│  │    • Cloud secrets (AWS/GCP/Azure access)              │  │
+│  │    • RCE patterns (curl|sh, wget|bash)                 │  │
+│  │    → Severity based on pattern type                    │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 4️⃣  PACKAGE.JSON HOOK CHECK (if applicable)            │  │
+│  │    Parse scripts section for dangerous hooks:          │  │
+│  │    • preinstall                                        │  │
+│  │    • postinstall                                       │  │
+│  │    • install                                           │  │
+│  │    Check hook content for malicious patterns           │  │
+│  │    → CRITICAL if suspicious command found              │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│  RESULTS AGGREGATION                                         │
+│  • Group findings by severity (Critical/High/Medium/Low)     │
+│  • Include file path, line number, and context               │
+│  • Output: Interactive TUI or JSON for CI/CD                 │
+└──────────────────────────────────────────────────────────────┘
+```
+
+\* node_modules scanning is optional (toggle with `-n` flag or `n` key in TUI)
 
 ## License
 

