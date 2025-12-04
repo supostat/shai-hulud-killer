@@ -1,5 +1,4 @@
 use crate::app::{App, AppState};
-use crate::patterns::Severity;
 use crate::scanner::FindingType;
 use anyhow::Result;
 use crossterm::{
@@ -12,7 +11,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Gauge, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Gauge, List, ListItem, Paragraph},
     Frame, Terminal,
 };
 use std::io;

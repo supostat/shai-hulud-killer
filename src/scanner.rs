@@ -60,17 +60,6 @@ pub enum FindingType {
     DangerousHook,
 }
 
-impl FindingType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            FindingType::MaliciousFile => "Malicious File",
-            FindingType::MaliciousHash => "Malicious Hash",
-            FindingType::SuspiciousPattern => "Suspicious Pattern",
-            FindingType::DangerousHook => "Dangerous Hook",
-        }
-    }
-}
-
 /// Progress callback type for UI updates
 pub type ProgressCallback = Box<dyn Fn(usize, usize, &str) + Send + Sync>;
 

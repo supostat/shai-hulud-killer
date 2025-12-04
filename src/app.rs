@@ -165,11 +165,11 @@ impl App {
     pub fn get_selected_path(&self) -> PathBuf {
         // Get the path of the currently selected/highlighted entry
         if let Some(entry) = self.entries.get(self.selected_index) {
-            if entry.is_dir && entry.name != ".." {
-                // Selected a directory - scan it
-                entry.path.clone()
-            } else if entry.name == ".." {
-                // ".." selected - scan the parent directory
+            if entry.name == ".." {
+                // ".." selected - scan current directory (not parent)
+                self.current_path.clone()
+            } else if entry.is_dir {
+                // Directory selected - scan it
                 entry.path.clone()
             } else {
                 // File selected - scan current directory
