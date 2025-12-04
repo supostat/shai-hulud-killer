@@ -141,6 +141,7 @@ fn draw_folder_selector(f: &mut Frame, app: &App, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3), // Current path
+            Constraint::Length(3), // Scan target
             Constraint::Length(3), // Options
             Constraint::Min(5),    // File list
         ])
@@ -157,6 +158,18 @@ fn draw_folder_selector(f: &mut Frame, app: &App, area: Rect) {
         );
     f.render_widget(path_widget, chunks[0]);
 
+    // Scan target (shows which folder will be scanned)
+    let scan_target = app.get_selected_path();
+    let target_display = format!(" 🎯 {}", scan_target.display());
+    let target_widget = Paragraph::new(target_display)
+        .style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
+        .block(
+            Block::default()
+                .title(" Will Scan (Space/s) ")
+                .borders(Borders::ALL),
+        );
+    f.render_widget(target_widget, chunks[1]);
+
     // Options
     let node_modules_status = if app.include_node_modules {
         "✓ ON"
@@ -169,7 +182,7 @@ fn draw_folder_selector(f: &mut Frame, app: &App, area: Rect) {
     ))
     .style(Style::default().fg(Color::Yellow))
     .block(Block::default().title(" Options ").borders(Borders::ALL));
-    f.render_widget(options, chunks[1]);
+    f.render_widget(options, chunks[2]);
 
     // File list
     let items: Vec<ListItem> = app
@@ -200,7 +213,7 @@ fn draw_folder_selector(f: &mut Frame, app: &App, area: Rect) {
         )
         .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
-    f.render_widget(list, chunks[2]);
+    f.render_widget(list, chunks[3]);
 }
 
 fn draw_scanning(f: &mut Frame, app: &App, area: Rect) {
@@ -220,8 +233,12 @@ fn draw_scanning(f: &mut Frame, app: &App, area: Rect) {
     let dots = ".".repeat((progress.current % 4) + 1);
     let title = format!(" 🔍 Scanning{} ", dots);
 
+    let scan_path = app.scan_path.as_ref()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| app.current_path.display().to_string());
+
     let info = Paragraph::new(vec![
-        Line::from(format!("Scanning: {}", app.current_path.display())),
+        Line::from(format!("Scanning: {}", scan_path)),
         Line::from(""),
         Line::from(format!(
             "Files processed: {} / {}",
